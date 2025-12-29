@@ -49,6 +49,24 @@
         proto: tcp
         comment: "Ratelimit K8S API Metrics"
 
+    - name: Add allow rules for other nodes - ipv4
+      become: true
+      become_user: root
+      community.general.ufw:
+        rule: allow
+        src: "{{ hostvars[item]['ansible_default_ipv4']['address'] }}"
+        comment: "allow all from {{ item }}"
+      loop: "{{ groups['all'] }}"
+
+    - name: Add allow rules for other nodes - ipv6
+      become: true
+      become_user: root
+      community.general.ufw:
+        rule: allow
+        src: "{{ hostvars[item]['ansible_default_ipv6']['address'] }}"
+        comment: "allow all from {{ item }}"
+      loop: "{{ groups['all'] }}"
+
     - name: Enable UFW
       become: true
       become_user: root
