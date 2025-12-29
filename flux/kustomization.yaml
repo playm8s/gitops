@@ -1,0 +1,11 @@
+kind: Kustomization
+resources:
+- flux.yaml
+- flux-system/
+# - authentik/
+# - cert-manager/
+- cilium/
+- local-path-provisioner/
+- monitoring/
+# - playm8s-operator/
+# - traefik/

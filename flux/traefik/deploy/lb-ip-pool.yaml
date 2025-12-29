@@ -1,0 +1,16 @@
+---
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: pm8s-io-lb001-traefik
+  labels:
+    bgp: enabled
+spec:
+  blocks:
+  - cidr: ""
+  - cidr: ""
+  allowFirstLastIPs: "Yes"
+  serviceSelector:
+    matchLabels:
+      "io.kubernetes.service.namespace": "traefik"
+      "pm8s-io-lb001-traefik": "true"
