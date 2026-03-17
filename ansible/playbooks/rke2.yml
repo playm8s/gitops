@@ -73,12 +73,12 @@
       community.general.ufw:
         state: enabled
 
-    - name: Add entries to /etc/hosts for rke2.ord.pm8s.io
+    - name: Add entries to /etc/hosts for rke2-server
       become: true
       become_user: root
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} rke2.ord.pm8s.io"
+        line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} rek2-server"
         state: present
       loop: "{{ groups['all'] }}"
 

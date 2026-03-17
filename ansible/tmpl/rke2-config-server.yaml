@@ -2,14 +2,14 @@
 
 debug: true
 
-server: "https://rke2.ord.pm8s.io:9345"
+server: "https://rke2-server:9345"
 
 token: "{{ tmpl_rke2_token }}"
 
 protect-kernel-defaults: true
 
 tls-san:
-  - "rke2.ord.pm8s.io"
+  - "rke2-server"
   - "127.0.0.1"
   - "::1"
 
