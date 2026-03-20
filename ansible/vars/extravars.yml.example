@@ -4,7 +4,7 @@ rke2_cluster_cidr: "172.16.0.0/16,fda8:af7c:f3da::/64"
 rke2_service_cidr: "172.18.0.0/16,fd4e:73c9:dc74::/112"
 rke2_cluster_dns: "172.18.0.10,fd4e:73c9:dc74::10"
 
-flux_github_url: git@github.com:playm8s/gitops.git
+flux_github_url: ssh://git@github.com/playm8s/gitops.git
 flux_github_branch: main
 flux_github_repo_path: /flux
 flux_github_ssh_private_key_file: "{{ playbook_dir }}/../../sshkey/id_ed25519.pm8s"

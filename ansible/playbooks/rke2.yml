@@ -172,11 +172,12 @@
             group: root
             state: link
 
-        - name: Restart systemd-sysctl to apply changes
-          ansible.builtin.systemd_service:
-            name: systemd-sysctl
-            state: restarted
-            daemon_reload: true
+        - name: Apply sysctls
+          become: true
+          become_user: root
+          ansible.builtin.command:
+            cmd: sysctl --system
+          changed_when: true
 
         - name: Remove server line from first control plane node config
           become: true
@@ -213,7 +214,7 @@
           register: kubectl_result
           until: >
             (kubectl_result.stdout | from_json | json_query('items[*].metadata.name') | length > 0) and
-            (groups['control_plane'][0] in (kubectl_result.stdout | from_json | json_query('items[*].metadata.name')))
+            ((groups['control_plane'][0] | split('.') | first) in (kubectl_result.stdout | from_json | json_query('items[*].metadata.name')))
           retries: 30
           delay: 10
           when: inventory_hostname == groups['control_plane'][0]
@@ -291,20 +292,25 @@
           when: inventory_hostname in groups['worker']
 
         - name: Fetch kubeconfig
-          become: false
           when: inventory_hostname == groups['control_plane'][0]
           block:
-            - name: Fetch kubeconfig from first control-plane node
+            - name: Read kubeconfig from first control-plane node
               become: true
-              become_user: root
-              ansible.builtin.fetch:
+              ansible.builtin.slurp:
                 src: /etc/rancher/rke2/rke2.yaml
+              register: kubeconfig_content
+
+            - name: Write kubeconfig locally
+              delegate_to: localhost
+              become: false
+              ansible.builtin.copy:
+                content: "{{ kubeconfig_content['content'] | b64decode }}"
                 dest: "{{ playbook_dir }}/../output/kubeconfig"
-                flat: true
+                mode: '0600'
 
             - name: Update kubeconfig server address to first control-plane node IP
               delegate_to: localhost
-              when: inventory_hostname == groups['control_plane'][0]
+              become: false
               ansible.builtin.replace:
                 path: "{{ playbook_dir }}/../output/kubeconfig"
                 regexp: 'server: https://127\.0\.0\.1:6443'
@@ -316,8 +322,6 @@
           when: inventory_hostname == groups['control_plane'][0]
           block:
             - name: Create temporary Cilium Helm values file
-              become: true
-              become_user: root
               ansible.builtin.copy:
                 content: |
                   {{ cilium_helm_values | to_nice_yaml }}
@@ -325,27 +329,22 @@
                 mode: '0644'
 
             - name: Add Cilium Helm repository
-              become: true
-              become_user: root
               ansible.builtin.command:
                 cmd: helm repo add cilium https://helm.cilium.io/
               changed_when: true
               failed_when: false
 
             - name: Update Helm repositories
-              become: true
-              become_user: root
               ansible.builtin.command:
                 cmd: helm repo update
               changed_when: true
 
             - name: Install/Upgrade Cilium using Helm
-              become: true
-              become_user: root
-              ansible.builtin.command:
+              ansible.builtin.shell:
+                executable: bash
                 cmd: |
                   set -euo pipefail
-                  export KUBECONFIG="{{ playbook_dir }}../output/kubeconfig"
+                  export KUBECONFIG="{{ playbook_dir }}/../output/kubeconfig"
 
                   helm upgrade \
                     --install kube-system-cilium \
@@ -355,17 +354,17 @@
                     --version {{ cilium_version }}
               changed_when: true
 
-        - name: Bootstram with fluxcd
+        - name: Bootstrap with fluxcd
           delegate_to: localhost
           become: false
           when: inventory_hostname == groups['control_plane'][0]
           block:
             - name: Run flux bootstrap
               ansible.builtin.shell:
-                executable: /bin/bash
+                executable: bash
                 cmd: |
                   set -euo pipefail
-                  export KUBECONFIG="{{ playbook_dir }}../output/kubeconfig"
+                  export KUBECONFIG="{{ playbook_dir }}/../output/kubeconfig"
 
                   flux bootstrap git \
                     --url={{ flux_github_url }} \
@@ -375,12 +374,15 @@
 
                   sleep 10
 
-                  cat "{{ playbook_dir }}/../flux/.sops/flux.agekey" \
+                  cat "{{ playbook_dir }}/../../flux/.sops/flux.agekey" \
                     | kubectl \
                       create secret generic sops-age \
                       --namespace=flux-system \
                       --from-file=age.agekey=/dev/stdin
 
-                  flux reconcile flux-system --with-source
+                  sleep 5
+
+                  flux reconcile ks flux-system --with-source
+
                   wait
               changed_when: true
