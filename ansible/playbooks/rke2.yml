@@ -370,7 +370,8 @@
                     --url={{ flux_github_url }} \
                     --branch={{ flux_github_branch }} \
                     --path={{ flux_github_repo_path }} \
-                    --private-key-file={{ flux_github_ssh_private_key_file }} &
+                    --private-key-file={{ flux_github_ssh_private_key_file }} \
+                    --silent &
 
                   sleep 10
 
