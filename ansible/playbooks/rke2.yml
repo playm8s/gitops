@@ -385,5 +385,13 @@
 
                   flux reconcile ks flux-system --with-source
 
+                  sleep 5
+
+                  helm uninstall --namespace kube-system kube-system-cilium
+
+                  sleep 30
+
+                  flux reconcile hr cilium --force
+
                   wait
               changed_when: true
