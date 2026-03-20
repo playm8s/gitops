@@ -26,6 +26,8 @@
     - name: Configure host networking
       block:
         - name: Disable/Mask systemd-networkd-wait-online.service
+          become: true
+          become_user: root
           ansible.builtin.systemd_service:
             name: systemd-networkd-wait-online.service
             state: stopped
