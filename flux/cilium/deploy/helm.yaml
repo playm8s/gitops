@@ -30,6 +30,8 @@ spec:
         namespace: flux-system
       interval: 60m
   values:
+    operator:
+      replicas: 1
     cni:
       exclusive: false
     kubeProxyReplacement: true
